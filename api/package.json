@@ -1,0 +1,13 @@
+{
+  "name": "user-demo",
+  "version": "1.0.0",
+  "author": "Blake Guilloud",
+  "dependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-loader": "^7.1.4",
+    "babel-preset-env": "^1.6.1"
+  },
+  "scripts": {
+    "build": "babel lib --out-dir dist"
+  }
+}

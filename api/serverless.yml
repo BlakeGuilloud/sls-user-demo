@@ -1,0 +1,31 @@
+service: user-demo
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+
+functions:
+  register:
+    handler: dist/handler.register
+    events:
+      - http:
+          path: register
+          method: post
+          cors: true
+
+  login:
+    handler: dist/handler.login
+    events:
+      - http:
+          path: login
+          method: post
+          cors: true
+
+  secureRoute:
+    handler: dist/handler.secureRoute
+    events:
+      - http:
+          path: secureRoute
+          method: post
+          cors: true
+
