@@ -1,37 +1,78 @@
-'use strict';
+import mongoose from 'mongoose';
+import bluebird from 'bluebird';
+mongoose.Promise = bluebird;
 
-module.exports.register = (event, context, callback) => {
-  const response = {
-    statusCode: 200,
-    body: JSON.stringify({
-      message: 'Register',
-      input: event,
-    }),
-  };
+import jwt from 'jsonwebtoken';
+import { handleSuccess, handleError, tryParse } from 'serverless-helpers';
 
-  callback(null, response);
+import User from './schema';
+import { generatePolicy } from './helpers';
+
+export const register = (event, context, callback) => {
+  mongoose.connect(process.env.MONGODB_URI);
+
+  const payload = tryParse(event.body);
+
+  User.create(payload)
+    .then((data) => {
+      const response = {
+        statusCode: 200,
+        body: data,
+      };
+
+      callback(null, handleSuccess(response));
+    })
+    .finally(() => {
+      mongoose.connection.close();
+    });
 };
 
-module.exports.login = (event, context, callback) => {
-  const response = {
-    statusCode: 200,
-    body: JSON.stringify({
-      message: 'Login',
-      input: event,
-    }),
-  };
+export const login = (event, context, callback) => {
+  mongoose.connect(process.env.MONGODB_URI);
 
-  callback(null, response);
+  const { username, password } = tryParse(event.body);
+
+  User.findOne({ username })
+    .then((data) => {
+      //  TODO: Hash this password and do cool things with it.
+      if (data && data.password === password) {
+        delete data.password;
+
+        const response = {
+          statusCode: 200,
+          body: data,
+          token: jwt.sign({ data }, process.env.JWT_SECRET),
+        };
+
+        callback(null, handleSuccess(response));
+      } else {
+        const response = {
+          statusCode: 404,
+          err: 'Incorrect username or password',
+        };
+
+        callback(null, response);
+      }
+    })
+    .finally(() => {
+      mongoose.connection.close();
+    });
+
 };
 
-module.exports.secureRoute = (event, context, callback) => {
-  const response = {
-    statusCode: 200,
-    body: JSON.stringify({
-      message: 'Secure!',
-      input: event,
-    }),
-  };
+export const secureRoute = (event, context, callback) => {
+  callback(null, handleSuccess('This is a secret route..'));
+};
 
-  callback(null, response);
+export const authorizerFunc = (event, context, callback) => {
+  // TODO- look into a more reliable way of parsing JWT.
+  const token = event.authorizationToken.split(' ')[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    callback(null, generatePolicy('user', 'Allow', event.methodArn));
+  } catch (err) {
+    callback('Unauthorized');
+  }
 };

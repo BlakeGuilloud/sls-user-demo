@@ -5,9 +5,17 @@
   "dependencies": {
     "babel-cli": "^6.26.0",
     "babel-loader": "^7.1.4",
-    "babel-preset-env": "^1.6.1"
+    "babel-preset-env": "^1.6.1",
+    "bluebird": "^3.5.1",
+    "jsonwebtoken": "^8.2.0",
+    "mongoose": "^5.0.10",
+    "mongoose-timestamp": "^0.6.0",
+    "serverless": "^1.26.1",
+    "serverless-helpers": "^0.0.7"
   },
   "scripts": {
-    "build": "babel lib --out-dir dist"
+    "build": "babel lib --out-dir dist",
+    "invoke": "yarn build && serverless invoke local --function",
+    "deploy": "yarn build && serverless deploy"
   }
 }

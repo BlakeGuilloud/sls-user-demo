@@ -3,6 +3,9 @@ service: user-demo
 provider:
   name: aws
   runtime: nodejs6.10
+  environment:
+    MONGODB_URI: ${file(./config.json):MONGODB_URI}
+    JWT_SECRET: ${file(./config.json):JWT_SECRET}
 
 functions:
   register:
@@ -26,6 +29,10 @@ functions:
     events:
       - http:
           path: secureRoute
-          method: post
+          method: get
+          authorizer: authorizerFunc
           cors: true
 
+  authorizerFunc:
+    handler: dist/handler.authorizerFunc
+    cors: true
