@@ -7,6 +7,9 @@ provider:
     MONGODB_URI: ${file(./config.json):MONGODB_URI}
     JWT_SECRET: ${file(./config.json):JWT_SECRET}
 
+package:
+  individually: true
+
 functions:
   register:
     handler: dist/handler.register

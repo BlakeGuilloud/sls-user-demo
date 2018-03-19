@@ -14,7 +14,7 @@ var _mongooseTimestamp2 = _interopRequireDefault(_mongooseTimestamp);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var UserSchema = new _mongoose2.default.Schema({
+const UserSchema = new _mongoose2.default.Schema({
   username: {
     type: String,
     required: true

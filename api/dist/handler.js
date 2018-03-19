@@ -17,6 +17,10 @@ var _jsonwebtoken = require('jsonwebtoken');
 
 var _jsonwebtoken2 = _interopRequireDefault(_jsonwebtoken);
 
+var _bcryptNodejs = require('bcrypt-nodejs');
+
+var _bcryptNodejs2 = _interopRequireDefault(_bcryptNodejs);
+
 var _serverlessHelpers = require('serverless-helpers');
 
 var _schema = require('./schema');
@@ -29,65 +33,98 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 _mongoose2.default.Promise = _bluebird2.default;
 
-var register = exports.register = function register(event, context, callback) {
-  _mongoose2.default.connect(process.env.MONGODB_URI);
+const register = exports.register = (event, context, callback) => {
+  const payload = (0, _serverlessHelpers.tryParse)(event.body);
 
-  var payload = (0, _serverlessHelpers.tryParse)(event.body);
-
-  _schema2.default.create(payload).then(function (data) {
-    var response = {
-      statusCode: 200,
-      body: data
+  if (!payload.password || !payload.username) {
+    const response = {
+      statusCode: 400,
+      body: JSON.stringify({ err: 'Username and Password are required' }),
+      headers: {
+        'Content-Type': 'application/json' // Might need to include additional headers when interacting w/ a browser.
+      }
     };
 
-    callback(null, (0, _serverlessHelpers.handleSuccess)(response));
-  }).finally(function () {
-    _mongoose2.default.connection.close();
+    return callback(null, response); // Annoying that you have to return out of the function or else it proceeds to the User.create()..
+  }
+
+  _mongoose2.default.connect(process.env.MONGODB_URI);
+
+  _schema2.default.findOne({ username: payload.username }).then(existingUser => {
+    if (existingUser) {
+      const response = {
+        statusCode: 400,
+        body: JSON.stringify({ err: 'Username is already in use' }),
+        headers: {
+          'Content-Type': 'application/json' // Might need to include additional headers when interacting w/ a browser.
+        }
+      };
+
+      _mongoose2.default.connection.close();
+
+      return callback(null, response);
+    }
+
+    payload.password = _bcryptNodejs2.default.hashSync(payload.password);
+
+    _schema2.default.create(payload).then(data => {
+      delete data.password;
+
+      const response = {
+        statusCode: 200,
+        body: data
+      };
+
+      callback(null, (0, _serverlessHelpers.handleSuccess)(response));
+    }).finally(() => {
+      _mongoose2.default.connection.close();
+    });
   });
 };
 
-var login = exports.login = function login(event, context, callback) {
+const login = exports.login = (event, context, callback) => {
   _mongoose2.default.connect(process.env.MONGODB_URI);
 
-  var _tryParse = (0, _serverlessHelpers.tryParse)(event.body),
-      username = _tryParse.username,
-      password = _tryParse.password;
+  const { username, password } = (0, _serverlessHelpers.tryParse)(event.body);
 
-  _schema2.default.findOne({ username: username }).then(function (data) {
-    //  TODO: Hash this password and do cool things with it.
-    if (data && data.password === password) {
+  _schema2.default.findOne({ username }).then(data => {
+    if (data) {
       delete data.password;
 
-      var response = {
-        statusCode: 200,
-        body: data,
-        token: _jsonwebtoken2.default.sign({ data: data }, process.env.JWT_SECRET)
+      const response = {
+        user: data,
+        token: _jsonwebtoken2.default.sign({ data }, process.env.JWT_SECRET)
       };
 
       callback(null, (0, _serverlessHelpers.handleSuccess)(response));
     } else {
-      var _response = {
-        statusCode: 404,
-        err: 'Incorrect username or password'
+      const response = {
+        statusCode: 400,
+        body: JSON.stringify({ err: 'Incorrect username or password' }),
+        headers: {
+          'Access-Control-Allow-Credentials': true,
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        }
       };
 
-      callback(null, _response);
+      callback(null, response);
     }
-  }).finally(function () {
+  }).finally(() => {
     _mongoose2.default.connection.close();
   });
 };
 
-var secureRoute = exports.secureRoute = function secureRoute(event, context, callback) {
-  callback(null, (0, _serverlessHelpers.handleSuccess)('This is a secret route..'));
+const secureRoute = exports.secureRoute = (event, context, callback) => {
+  callback(null, (0, _serverlessHelpers.handleSuccess)({ message: 'this is secret', context }));
 };
 
-var authorizerFunc = exports.authorizerFunc = function authorizerFunc(event, context, callback) {
+const authorizerFunc = exports.authorizerFunc = (event, context, callback) => {
   // TODO- look into a more reliable way of parsing JWT.
-  var token = event.authorizationToken.split(' ')[1];
+  const token = event.authorizationToken.split(' ')[1];
 
   try {
-    var decoded = _jsonwebtoken2.default.verify(token, process.env.JWT_SECRET);
+    const decoded = _jsonwebtoken2.default.verify(token, process.env.JWT_SECRET);
 
     callback(null, (0, _helpers.generatePolicy)('user', 'Allow', event.methodArn));
   } catch (err) {

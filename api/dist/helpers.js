@@ -3,17 +3,17 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var generatePolicy = exports.generatePolicy = function generatePolicy(principalId, effect, resource) {
-    var authResponse = {};
+const generatePolicy = exports.generatePolicy = (principalId, effect, resource) => {
+    const authResponse = {};
 
     authResponse.principalId = principalId;
 
     if (effect && resource) {
-        var policyDocument = {};
+        const policyDocument = {};
         policyDocument.Version = '2012-10-17';
         policyDocument.Statement = [];
 
-        var statementOne = {};
+        const statementOne = {};
         statementOne.Action = 'execute-api:Invoke';
         statementOne.Effect = effect;
         statementOne.Resource = resource;

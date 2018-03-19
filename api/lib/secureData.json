@@ -1,5 +1,6 @@
 {
-  "resource": "",
-  "path": "/secureRoute",
-  "httpMethod": "POST"
+  "body": {
+    "username": "bessie44",
+    "password": "blueberry"
+  }
 }
